@@ -37,6 +37,9 @@ RestrictRealtime=true
 RestrictSUIDSGID=true
 SystemCallArchitectures=native
 UMask=0027
+ProtectProc=noaccess
+ProcSubset=pid
+SystemCallFilter=~@clock @swap @reboot @raw-io @privileged @obsolete @mount @module @debug @cpu-emulation
 
 [Install]
 WantedBy=multi-user.target
