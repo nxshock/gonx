@@ -40,6 +40,8 @@ UMask=0027
 ProtectProc=noaccess
 ProcSubset=pid
 SystemCallFilter=~@clock @swap @reboot @raw-io @privileged @obsolete @mount @module @debug @cpu-emulation
+RestrictAddressFamilies=~AF_UNIX AF_PACKET AF_NETLINK
+UMask=0066
 
 [Install]
 WantedBy=multi-user.target
