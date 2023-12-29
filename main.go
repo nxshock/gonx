@@ -66,7 +66,7 @@ func main() {
 		smux := http.NewServeMux()
 		smux.Handle(defaultAcmeChallengePath, http.StripPrefix(defaultAcmeChallengePath, http.FileServer(http.Dir(config.AcmeChallengePath))))
 		smux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-			http.Redirect(w, r, "https://"+r.Host+r.RequestURI, http.StatusMovedPermanently) // TODO: заполнить URL переадресации
+			http.Redirect(w, r, "https://"+r.Host+r.RequestURI, http.StatusMovedPermanently)
 		})
 		httpServer := http.Server{Handler: smux}
 		httpServer.Addr = config.HttpListenAddr
