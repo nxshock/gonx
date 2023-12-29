@@ -55,6 +55,8 @@ func LoadConfig(configFilePath string) (*Config, error) {
 }
 
 func (c *Config) initTls() error {
+	slog.Debug("Loading TLS keys")
+
 	c.tlsConfig = new(tls.Config)
 
 	for hostName := range c.proxyRules {

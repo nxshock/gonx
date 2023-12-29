@@ -1,7 +1,6 @@
 package main
 
 import (
-	"crypto/tls"
 	"log/slog"
 	"net/http"
 	"os"
@@ -33,32 +32,17 @@ func main() {
 		}}))
 	slog.SetDefault(logger)
 
-	err = config.initTls()
+	app, err := newApp(config)
 	if err != nil {
-		slog.Error("init tls error", slog.String("err", err.Error()))
+		slog.Error("Failed to start app", slog.String("err", err.Error()))
 		os.Exit(1)
 	}
 
-	go func() {
-		slog.Debug("Starting TLS listener", slog.String("addr", config.TlsListenAddr))
-
-		listener, err := tls.Listen("tcp", config.TlsListenAddr, config.tlsConfig)
-		if err != nil {
-			slog.Error("Failed to open tls listener", slog.String("err", err.Error()))
-			os.Exit(1)
-		}
-
-		for {
-			conn, err := listener.Accept()
-			if err != nil {
-				slog.Debug("incoming connection failed", slog.String("err", err.Error()))
-				continue
-			}
-			slog.Debug("incoming connection", slog.String("RemoteAddr", conn.RemoteAddr().String()))
-
-			go func() { _ = handleTlsConn(conn.(*tls.Conn), config.proxyRules) }()
-		}
-	}()
+	err = app.restartTlsListener()
+	if err != nil {
+		slog.Error("Failed to start TLS listener", slog.String("err", err.Error()))
+		os.Exit(1)
+	}
 
 	go func() {
 		slog.Debug("Starting HTTP listener", slog.String("addr", config.HttpListenAddr))
@@ -74,6 +58,21 @@ func main() {
 		if err != nil {
 			slog.Error("Failed to start HTTP server", slog.String("err", err.Error()))
 			os.Exit(1)
+		}
+	}()
+
+	go func() {
+		c := make(chan os.Signal, 1)
+		signal.Notify(c, syscall.SIGUSR1)
+		for {
+			<-c
+			slog.Debug("TLS keys reload requested")
+
+			err := app.reloadConfig(configFilePath)
+			if err != nil {
+				slog.Error("failed to reload TLS keys", slog.String("err", err.Error()))
+			}
+			slog.Debug("Reloading TLS keys completed")
 		}
 	}()
 
