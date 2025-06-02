@@ -39,7 +39,18 @@ func (h HostMapping) Add(host, outputUrlStr string) error {
 					slog.Debug(err.Error())
 					continue
 				}
-				go func() { _ = handleProxy(conn.(*tls.Conn), pd.Output) }()
+				go func() { _ = handleTcp(conn.(*tls.Conn), pd.Output) }()
+			}
+		}(pd)
+	case "unix":
+		go func(pd ProxyDirection) {
+			for {
+				conn, err := pd.listener.Accept()
+				if err != nil {
+					slog.Debug(err.Error())
+					continue
+				}
+				go func() { _ = handleUnix(conn.(*tls.Conn), pd.Output) }()
 			}
 		}(pd)
 	default:
@@ -68,8 +79,35 @@ func handleTlsConn(conn *tls.Conn, hosts HostMapping) error {
 	return nil
 }
 
-func handleProxy(conn *tls.Conn, outputUrl *url.URL) error {
+func handleTcp(conn *tls.Conn, outputUrl *url.URL) error {
 	c, err := net.Dial(outputUrl.Scheme, outputUrl.Host)
+	if err != nil {
+		return fmt.Errorf("dial: %v", err)
+	}
+	defer c.Close()
+
+	wg := new(sync.WaitGroup)
+	wg.Add(2)
+
+	go func() {
+		defer wg.Done()
+
+		_, _ = io.Copy(conn, c)
+	}()
+
+	go func() {
+		defer wg.Done()
+
+		_, _ = io.Copy(c, conn)
+	}()
+
+	wg.Wait()
+
+	return nil
+}
+
+func handleUnix(conn *tls.Conn, outputUrl *url.URL) error {
+	c, err := net.Dial(outputUrl.Scheme, outputUrl.Host+outputUrl.Path)
 	if err != nil {
 		return fmt.Errorf("dial: %v", err)
 	}
