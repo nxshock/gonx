@@ -26,6 +26,7 @@ AcmeChallengePath = "/var/lib/letsencrypt" # Path for ACME challenge files
 
 # Map of hostname -> redirect URL
 [TLS]
-"git.host.com" = "tcp://127.0.0.1:8001" # TCP redirect
-"www.host.com" = "file:///srv/http"     # simple static file server from `/srv/http`
+"git.host.com"  = "tcp://127.0.0.1:8001"           # TCP redirect
+"unix.host.com" = "unix:///var/lib/app/app.socket" # serve unix socket
+"www.host.com"  = "file:///srv/http"               # simple static file server from `/srv/http`
 ```
