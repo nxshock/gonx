@@ -38,10 +38,14 @@ func main() {
 		os.Exit(1)
 	}
 
-	err = app.restartTlsListener()
-	if err != nil {
-		slog.Error("Failed to start TLS listener", slog.String("err", err.Error()))
-		os.Exit(1)
+	if len(config.TLS) > 0 {
+		err = app.restartTlsListener()
+		if err != nil {
+			slog.Error("Failed to start TLS listener", slog.String("err", err.Error()))
+			os.Exit(1)
+		}
+	} else {
+		slog.Warn("TLS listener does not started because TLS redirection rules is empty")
 	}
 
 	go func() {
