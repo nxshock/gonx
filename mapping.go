@@ -30,7 +30,7 @@ func (h HostMapping) Add(host, outputUrlStr string) error {
 	switch outputUrl.Scheme {
 	case "file":
 		server := http.Server{Handler: http.FileServer(http.Dir(outputUrl.Path))}
-		go func() { _ = server.Serve(pd.listener) }()
+		go server.Serve(pd.listener)
 	case "tcp":
 		go func(pd ProxyDirection) {
 			for {
@@ -39,7 +39,7 @@ func (h HostMapping) Add(host, outputUrlStr string) error {
 					slog.Debug(err.Error())
 					continue
 				}
-				go func() { _ = handleTcp(conn.(*tls.Conn), pd.Output) }()
+				go handleTcp(conn.(*tls.Conn), pd.Output)
 			}
 		}(pd)
 	case "unix":
@@ -50,7 +50,7 @@ func (h HostMapping) Add(host, outputUrlStr string) error {
 					slog.Debug(err.Error())
 					continue
 				}
-				go func() { _ = handleUnix(conn.(*tls.Conn), pd.Output) }()
+				go handleUnix(conn.(*tls.Conn), pd.Output)
 			}
 		}(pd)
 	default:
@@ -79,10 +79,14 @@ func handleTlsConn(conn *tls.Conn, hosts HostMapping) error {
 	return nil
 }
 
-func handleTcp(conn *tls.Conn, outputUrl *url.URL) error {
+func handleTcp(conn *tls.Conn, outputUrl *url.URL) {
+	slog.Debug(fmt.Sprintf("%s -> %s", conn.RemoteAddr(), outputUrl.Host))
+
 	c, err := net.Dial(outputUrl.Scheme, outputUrl.Host)
 	if err != nil {
-		return fmt.Errorf("dial: %v", err)
+		writeError(conn, err)
+		conn.Close()
+		return
 	}
 	defer c.Close()
 
@@ -102,14 +106,16 @@ func handleTcp(conn *tls.Conn, outputUrl *url.URL) error {
 	}()
 
 	wg.Wait()
-
-	return nil
 }
 
-func handleUnix(conn *tls.Conn, outputUrl *url.URL) error {
+func handleUnix(conn *tls.Conn, outputUrl *url.URL) {
+	slog.Debug(fmt.Sprintf("%s -> %s", conn.RemoteAddr(), outputUrl.Host+outputUrl.Path))
+
 	c, err := net.Dial(outputUrl.Scheme, outputUrl.Host+outputUrl.Path)
 	if err != nil {
-		return fmt.Errorf("dial: %v", err)
+		writeError(conn, err)
+		conn.Close()
+		return
 	}
 	defer c.Close()
 
@@ -129,6 +135,8 @@ func handleUnix(conn *tls.Conn, outputUrl *url.URL) error {
 	}()
 
 	wg.Wait()
+}
 
-	return nil
+func writeError(w io.Writer, err error) {
+	fmt.Fprintf(w, "HTTP/1.1 500 Internal Server Error\r\nConnection: Close\r\nContent-Type: text/plain\r\n\r\n%s", err)
 }
