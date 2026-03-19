@@ -71,10 +71,11 @@ func handleTlsConn(conn *tls.Conn, hosts HostMapping) error {
 func handleListener(conn *tls.Conn, outputUrl *url.URL) {
 	slog.Debug(fmt.Sprintf("%s -> %s", conn.RemoteAddr(), outputUrl.Host+outputUrl.Path))
 
+	defer conn.Close()
+
 	c, err := net.Dial(outputUrl.Scheme, outputUrl.Host+outputUrl.Path)
 	if err != nil {
 		fmt.Fprintf(conn, "HTTP/1.1 500 Internal Server Error\r\nConnection: Close\r\nContent-Type: text/plain\r\n\r\n%s", err)
-		conn.Close()
 		return
 	}
 	defer c.Close()
