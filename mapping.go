@@ -3,12 +3,8 @@ package main
 import (
 	"crypto/tls"
 	"fmt"
-	"io"
-	"log/slog"
-	"net"
 	"net/http"
 	"net/url"
-	"sync"
 )
 
 type ProxyDirection struct {
@@ -19,7 +15,7 @@ type ProxyDirection struct {
 
 type HostMapping map[string]ProxyDirection // hostName -> rule
 
-func (h HostMapping) Add(host, outputUrlStr string) error {
+func (h HostMapping) Add(app *App, host, outputUrlStr string) error {
 	outputUrl, err := url.Parse(outputUrlStr)
 	if err != nil {
 		return err
@@ -36,14 +32,14 @@ func (h HostMapping) Add(host, outputUrlStr string) error {
 			for {
 				conn, err := pd.listener.Accept()
 				if err != nil {
-					slog.Debug(err.Error())
+					logger.Error(err.Error())
 					continue
 				}
-				go handleListener(conn.(*tls.Conn), pd.Output)
+				go app.handleListener(conn.(*tls.Conn), pd.Output)
 			}
 		}(pd)
 	default:
-		return fmt.Errorf("unknown output protocol: %v", outputUrl.Scheme)
+		return fmt.Errorf("unknown output protocol: %s", outputUrl.Scheme)
 	}
 
 	h[host] = pd
@@ -66,34 +62,4 @@ func handleTlsConn(conn *tls.Conn, hosts HostMapping) error {
 	proxyDirection.listener.Add(conn)
 
 	return nil
-}
-
-func handleListener(conn *tls.Conn, outputUrl *url.URL) {
-	slog.Debug(fmt.Sprintf("%s -> %s", conn.RemoteAddr(), outputUrl.Host+outputUrl.Path))
-
-	defer conn.Close()
-
-	c, err := net.Dial(outputUrl.Scheme, outputUrl.Host+outputUrl.Path)
-	if err != nil {
-		fmt.Fprintf(conn, "HTTP/1.1 500 Internal Server Error\r\nConnection: Close\r\nContent-Type: text/plain\r\n\r\n%s", err)
-		return
-	}
-	defer c.Close()
-
-	wg := new(sync.WaitGroup)
-	wg.Add(2)
-
-	go func() {
-		defer wg.Done()
-
-		_, _ = io.Copy(conn, c)
-	}()
-
-	go func() {
-		defer wg.Done()
-
-		_, _ = io.Copy(c, conn)
-	}()
-
-	wg.Wait()
 }
