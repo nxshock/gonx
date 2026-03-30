@@ -12,6 +12,11 @@ var logger *simplelog.Logger
 
 func init() {
 	logger = simplelog.NewLogger(os.Stderr)
+
+	// Disable timestamps if running in systemd
+	if os.Getppid() == 1 {
+		logger.TimeFormat = ""
+	}
 }
 
 func main() {
