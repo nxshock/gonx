@@ -4,7 +4,9 @@ import (
 	"crypto/tls"
 	"encoding/json"
 	"fmt"
+	"html/template"
 	"io"
+	"log"
 	"net"
 	"net/http"
 	"net/url"
@@ -31,6 +33,9 @@ type App struct {
 
 	// Total processed conections count
 	TotalConnectionsCount int64
+
+	// Error page data
+	errorPage *template.Template
 }
 
 func newApp() *App {
@@ -44,6 +49,25 @@ func (app *App) LoadConfig(configFilePath string) error {
 	if err != nil {
 		return err
 	}
+
+	var templ *template.Template
+	if config.ErrorPageFilePath != "" {
+		b, err := os.ReadFile(config.ErrorPageFilePath)
+		if err != nil {
+			log.Fatalf("error reading error page file: %v", err)
+		}
+		templ, err = template.New("error").Parse(string(b))
+		if err != nil {
+			log.Fatalf("error page template parse error: %v", err)
+		}
+		app.errorPage = templ
+	} else {
+		templ, err = template.New("error").Parse(defaultErrorPage)
+		if err != nil {
+			log.Fatalf("error page template parse error: %v", err)
+		}
+	}
+	app.errorPage = templ
 
 	config.proxyRules = make(HostMapping)
 	for inputUrlStr, outputUrlStr := range config.TLS {
@@ -187,7 +211,8 @@ func (app *App) handleListener(conn *tls.Conn, outputUrl *url.URL) {
 
 	c, err := net.Dial(outputUrl.Scheme, outputUrl.Host+outputUrl.Path)
 	if err != nil {
-		fmt.Fprintf(conn, "HTTP/1.1 500 Internal Server Error\r\nConnection: Close\r\nContent-Type: text/plain\r\n\r\n%s", err)
+		fmt.Fprintf(conn, "HTTP/1.1 %d Internal Server Error\r\nConnection: Close\r\nContent-Type: text/html\r\n\r\n", 500)
+		app.ErrorPage(conn, 500, err.Error())
 		return
 	}
 	defer c.Close()
@@ -210,4 +235,17 @@ func (app *App) handleListener(conn *tls.Conn, outputUrl *url.URL) {
 	}()
 
 	wg.Wait()
+}
+
+// ErrorPage writes error page from stored template to `w` and closes connection.
+func (app *App) ErrorPage(w io.WriteCloser, responceCode int, errorText string) {
+	err := struct {
+		Code int
+		Text string
+	}{
+		Code: responceCode,
+		Text: errorText}
+
+	app.errorPage.Execute(w, err)
+	w.Close()
 }

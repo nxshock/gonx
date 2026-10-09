@@ -32,6 +32,9 @@ type Config struct {
 
 	// loaded TLS keys
 	tlsConfig *tls.Config
+
+	// Error page file path
+	ErrorPageFilePath string
 }
 
 func (c *Config) initTls() error {
