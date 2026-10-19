@@ -10,30 +10,20 @@
 			--c0: light-dark(#ffffff, #181818); /* Default Background */
 			--c1: light-dark(#ebebeb, #1c1c1c); /* Lighter Background */
 			--c2: light-dark(#cdcdcd, #2d2d2d); /* Selection Background */
-			--c3: light-dark(#878787, #777777); /* Comments, Invisibles, Line Highlighting */
-			--c4: light-dark(#878787, #777777); /* Dark Foreground (Used for status bars) */
-			--c5: light-dark(#474747, #b9b9b9); /* Default Foreground, Caret, Delimiters, Operators */
-			--c6: light-dark(#282828, #dedede); /* Light Foreground (Not often used) */
-			--c7: light-dark(#282828, #dedede); /* Light Background (Not often used) */
-			--c8: light-dark(#d6000c, #ed4a46); /* Red */
-			--c9: light-dark(#d04a00, #e67f43); /* Orange */
-			--cA: light-dark(#c49700, #dbb32d); /* Yellow */
-			--cB: light-dark(#1d9700, #70b433); /* Green */
-			--cC: light-dark(#00ad9c, #3fc5b7); /* Aqua */
-			--cD: light-dark(#0064e4, #368aeb); /* Blue */
-			--cE: light-dark(#7f51d6, #a580e2); /* Purple */
-			--cF: light-dark(#eb6eb7, #eb6eb7); /* Dark red */
+			--c3: light-dark(#474747, #b9b9b9); /* Default Foreground */
+			--c4: light-dark(#0064e4, #368aeb); /* Default Link */
+			--c5: light-dark(#7f51d6, #a580e2); /* Visited Blue */
 		}
 
 		* {
 			font-size: 16px;
-			color: var(--c5);
+			color: var(--c3);
 			margin: 0;
 			padding: 0;
 		}
 
 		html {
-			height: 100%
+			height: 100%;
 		}
 
 		body {
@@ -47,7 +37,12 @@
 
 		a {
 			text-decoration: none;
-			color: var(--cD);
+			color: var(--c4);
+		}
+
+		a:visited {
+			color: var(--c5);
+			text-decoration: none;
 		}
 
 		main {

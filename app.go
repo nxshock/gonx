@@ -35,7 +35,8 @@ type App struct {
 	TotalConnectionsCount int64
 
 	// Error page data
-	errorPage *template.Template
+	errorPage       *template.Template
+	serverErrorFunc func(w http.ResponseWriter, text string, code int)
 }
 
 func newApp() *App {
@@ -68,6 +69,31 @@ func (app *App) LoadConfig(configFilePath string) error {
 		}
 	}
 	app.errorPage = templ
+	app.serverErrorFunc = func(w http.ResponseWriter, text string, code int) {
+		h := w.Header()
+
+		// Delete the Content-Length header, which might be for some other content.
+		// Assuming the error string fits in the writer's buffer, we'll figure
+		// out the correct Content-Length for it later.
+		//
+		// We don't delete Content-Encoding, because some middleware sets
+		// Content-Encoding: gzip and wraps the ResponseWriter to compress on-the-fly.
+		// See https://go.dev/issue/66343.
+		h.Del("Content-Length")
+
+		// There might be content type already set, but we reset it to
+		// text/plain for the error message.
+		h.Set("Content-Type", "text/html; charset=utf-8")
+		h.Set("X-Content-Type-Options", "nosniff")
+		w.WriteHeader(code)
+
+		app.errorPage.Execute(w, struct {
+			Code int
+			Text string
+		}{
+			Code: code,
+			Text: text})
+	}
 
 	config.proxyRules = make(HostMapping)
 	for inputUrlStr, outputUrlStr := range config.TLS {
@@ -183,12 +209,12 @@ func (app *App) handleStats() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		host, _, err := net.SplitHostPort(r.RemoteAddr)
 		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
+			app.serverErrorFunc(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
 
 		if host != "127.0.0.1" {
-			http.Error(w, "not allowed", http.StatusForbidden)
+			app.serverErrorFunc(w, "not allowed", http.StatusForbidden)
 			return
 		}
 
@@ -212,7 +238,8 @@ func (app *App) handleListener(conn *tls.Conn, outputUrl *url.URL) {
 	c, err := net.Dial(outputUrl.Scheme, outputUrl.Host+outputUrl.Path)
 	if err != nil {
 		fmt.Fprintf(conn, "HTTP/1.1 %d Internal Server Error\r\nConnection: Close\r\nContent-Type: text/html\r\n\r\n", 500)
-		app.ErrorPage(conn, 500, err.Error())
+		app.serverErrorFunc(newResponseWriter(conn), err.Error(), http.StatusInternalServerError)
+		conn.Close()
 		return
 	}
 	defer c.Close()
@@ -235,17 +262,4 @@ func (app *App) handleListener(conn *tls.Conn, outputUrl *url.URL) {
 	}()
 
 	wg.Wait()
-}
-
-// ErrorPage writes error page from stored template to `w` and closes connection.
-func (app *App) ErrorPage(w io.WriteCloser, responceCode int, errorText string) {
-	err := struct {
-		Code int
-		Text string
-	}{
-		Code: responceCode,
-		Text: errorText}
-
-	app.errorPage.Execute(w, err)
-	w.Close()
 }

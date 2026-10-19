@@ -25,7 +25,7 @@ func (h HostMapping) Add(app *App, host, outputUrlStr string) error {
 
 	switch outputUrl.Scheme {
 	case "file":
-		server := http.Server{Handler: http.FileServer(http.Dir(outputUrl.Path))}
+		server := http.Server{Handler: &fileHandler{app, http.Dir(outputUrl.Path)}}
 		go server.Serve(pd.listener)
 	case "tcp", "unix":
 		go func(pd ProxyDirection) {
