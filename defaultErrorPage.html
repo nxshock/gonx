@@ -1,9 +1,10 @@
+<!DOCTYPE html>
 <html>
 
 <head>
 	<meta charset="utf-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
-	<title>Error {{.Code}}</title>
+	<title>Error {{.StatusCode}}</title>
 	<style>
 		:root {
 			color-scheme: light dark;
@@ -12,7 +13,7 @@
 			--c2: light-dark(#cdcdcd, #2d2d2d); /* Selection Background */
 			--c3: light-dark(#474747, #b9b9b9); /* Default Foreground */
 			--c4: light-dark(#0064e4, #368aeb); /* Default Link */
-			--c5: light-dark(#7f51d6, #a580e2); /* Visited Blue */
+			--c5: light-dark(#7f51d6, #a580e2); /* Visited Link */
 		}
 
 		* {
@@ -84,7 +85,7 @@
 
 <body>
 	<main>
-		<h1>Error {{.Code}}</h1>
+		<h1>Error {{.StatusCode}} {{.StatusText}}</h1>
 		<p>Info:</p>
 		<pre>{{.Text}}</pre>
 	</main>

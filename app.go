@@ -87,12 +87,17 @@ func (app *App) LoadConfig(configFilePath string) error {
 		h.Set("X-Content-Type-Options", "nosniff")
 		w.WriteHeader(code)
 
-		app.errorPage.Execute(w, struct {
-			Code int
-			Text string
+		err := app.errorPage.Execute(w, struct {
+			StatusCode int
+			StatusText string
+			Text       string
 		}{
-			Code: code,
-			Text: text})
+			StatusCode: code,
+			StatusText: http.StatusText(code),
+			Text:       text})
+		if err != nil {
+			logger.Error(err)
+		}
 	}
 
 	config.proxyRules = make(HostMapping)
@@ -237,7 +242,6 @@ func (app *App) handleListener(conn *tls.Conn, outputUrl *url.URL) {
 
 	c, err := net.Dial(outputUrl.Scheme, outputUrl.Host+outputUrl.Path)
 	if err != nil {
-		fmt.Fprintf(conn, "HTTP/1.1 %d Internal Server Error\r\nConnection: Close\r\nContent-Type: text/html\r\n\r\n", 500)
 		app.serverErrorFunc(newResponseWriter(conn), err.Error(), http.StatusInternalServerError)
 		conn.Close()
 		return
