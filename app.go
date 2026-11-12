@@ -242,6 +242,7 @@ func (app *App) handleListener(conn *tls.Conn, outputUrl *url.URL) {
 
 	c, err := net.Dial(outputUrl.Scheme, outputUrl.Host+outputUrl.Path)
 	if err != nil {
+		conn.Read(make([]byte, 32*1024)) // read header to prevent client errors
 		app.serverErrorFunc(newResponseWriter(conn), err.Error(), http.StatusInternalServerError)
 		conn.Close()
 		return
