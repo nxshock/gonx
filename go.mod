@@ -4,6 +4,7 @@ go 1.26.0
 
 require (
 	github.com/BurntSushi/toml v1.6.0
+	github.com/nxshock/go-uno v0.0.19
 	github.com/nxshock/simplelog v0.0.20
 )
 

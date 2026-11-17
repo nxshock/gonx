@@ -3,7 +3,7 @@ package main
 import _ "embed"
 
 const (
-	defaultConfigPath  = "/etc/gonx.conf"
+	defaultConfigPath  = "/etc/gonx.uno"
 	defaultTlsKeysPath = "/etc/letsencrypt/live"
 
 	defaultCertFileName = "fullchain.pem"

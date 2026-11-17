@@ -16,7 +16,7 @@ import (
 	"sync/atomic"
 	"syscall"
 
-	"github.com/BurntSushi/toml"
+	"github.com/nxshock/go-uno"
 	"github.com/nxshock/simplelog"
 )
 
@@ -46,7 +46,7 @@ func newApp() *App {
 func (app *App) LoadConfig(configFilePath string) error {
 	config := new(Config)
 
-	_, err := toml.DecodeFile(configFilePath, &config)
+	err := uno.DecodeFile(configFilePath, &config)
 	if err != nil {
 		return err
 	}

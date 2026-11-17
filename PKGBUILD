@@ -18,6 +18,6 @@ build() {
 package() {
 	cd "$pkgname"
 	install -Dm755 $pkgname         $pkgdir/usr/bin/$pkgname
-	install -Dm644 $pkgname.conf    $pkgdir/etc/$pkgname.conf
+	install -Dm644 $pkgname.uno     $pkgdir/etc/$pkgname.conf
 	install -Dm755 $pkgname.service $pkgdir/usr/lib/systemd/system/$pkgname.service
 }
