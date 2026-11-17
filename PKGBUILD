@@ -1,5 +1,5 @@
 pkgname=gonx
-pkgver=0.0.11
+pkgver=0.0.12
 pkgrel=1
 pkgdesc='Simple reverse proxy server'
 arch=('x86_64' 'aarch64')
